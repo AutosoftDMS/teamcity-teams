@@ -1,5 +1,5 @@
 target
-teamcity-slack-integration-server/target
+teamcity-teams-integration-server/target
 *.class
 
 # Package Files #
@@ -18,4 +18,4 @@ teamcity-slack-integration-server/target
 
 # Gradle #
 .gradle
-teamcity-slack-integration-server/build
+teamcity-teams-integration-server/build

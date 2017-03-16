@@ -1,11 +1,10 @@
-package com.enlivenhq.slack;
+package com.autoloop.teams;
 
-import com.enlivenhq.teamcity.SlackNotificator;
-import com.enlivenhq.teamcity.SlackPayload;
+import com.autoloop.teamcity.TeamsNotificator;
+import com.autoloop.teamcity.TeamsPayload;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import jetbrains.buildServer.Build;
-import jetbrains.buildServer.serverSide.TeamCityProperties;
 import jetbrains.buildServer.web.util.WebUtil;
 import org.apache.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -14,39 +13,29 @@ import javax.net.ssl.HttpsURLConnection;
 import java.io.*;
 import java.net.URL;
 
-public class SlackWrapper
+public class TeamsWrapper
 {
     public static final GsonBuilder GSON_BUILDER = new GsonBuilder().excludeFieldsWithoutExposeAnnotation();
-    private static final Logger LOG = Logger.getLogger(SlackNotificator.class);
-    protected String slackUrl;
+    private static final Logger LOG = Logger.getLogger(TeamsNotificator.class);
 
-    protected String username;
-
-    protected String channel;
+    protected String webhookUrl;
 
     protected String serverUrl;
 
-    protected Boolean useAttachment;
+    public TeamsWrapper() {
 
-    public SlackWrapper () {
-        this.useAttachment  = TeamCityProperties.getBooleanOrTrue("teamcity.notification.slack.useAttachment");
     }
 
-    public SlackWrapper (Boolean useAttachment) {
-        this.useAttachment = useAttachment;
-    }
-
-    public String send(String project, String build, String branch, String statusText, String statusColor, Build bt) throws IOException
+    public String send(Build build, String statusText) throws IOException
     {
-        String formattedPayload = getFormattedPayload(project, build, branch, statusText, statusColor, bt.getBuildTypeExternalId(), bt.getBuildId());
+        String formattedPayload = getFormattedPayload(build, statusText);
         LOG.debug(formattedPayload);
 
-        URL url = new URL(this.getSlackUrl());
+        URL url = new URL(this.getWebhookUrl());
         HttpsURLConnection httpsURLConnection = (HttpsURLConnection) url.openConnection();
 
         httpsURLConnection.setRequestMethod("POST");
-        httpsURLConnection.setRequestProperty("User-Agent", "Enliven");
-        httpsURLConnection.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
+        httpsURLConnection.setRequestProperty("Content-Type", "application/json");
         httpsURLConnection.setDoOutput(true);
 
         DataOutputStream dataOutputStream = new DataOutputStream(
@@ -79,15 +68,12 @@ public class SlackWrapper
     }
 
     @NotNull
-    public String getFormattedPayload(String project, String build, String branch, String statusText, String statusColor, String btId, long buildId) {
+    public String getFormattedPayload(Build build, String statusText) {
         Gson gson = GSON_BUILDER.create();
 
-        SlackPayload slackPayload = new SlackPayload(project, build, branch, statusText, statusColor, btId, buildId, WebUtil.escapeUrlForQuotes(getServerUrl()));
-        slackPayload.setChannel(getChannel());
-        slackPayload.setUsername(getUsername());
-        slackPayload.setUseAttachments(this.useAttachment);
+        TeamsPayload teamsPayload = new TeamsPayload(build, statusText, WebUtil.escapeUrlForQuotes(getServerUrl()));
 
-        return gson.toJson(slackPayload);
+        return gson.toJson(teamsPayload);
     }
 
     private String getResponseBody(InputStream inputStream, String responseBody) throws IOException {
@@ -105,34 +91,14 @@ public class SlackWrapper
         return responseBody;
     }
 
-    public void setSlackUrl(String slackUrl)
+    public void setWebhookUrl(String webhookUrl)
     {
-        this.slackUrl = slackUrl;
+        this.webhookUrl = webhookUrl;
     }
 
-    public String getSlackUrl()
+    public String getWebhookUrl()
     {
-        return this.slackUrl;
-    }
-
-    public void setUsername(String username)
-    {
-        this.username = username;
-    }
-
-    public String getUsername()
-    {
-        return this.username;
-    }
-
-    public void setChannel(String channel)
-    {
-        this.channel = channel;
-    }
-
-    public String getChannel()
-    {
-        return this.channel;
+        return this.webhookUrl;
     }
 
     public String getServerUrl() {

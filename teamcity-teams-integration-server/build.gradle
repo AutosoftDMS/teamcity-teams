@@ -12,7 +12,7 @@ dependencies {
   compile 'com.google.code.gson:gson:1.7.1'
 }
 
-group = 'com.enlivenhq.teamcity'
+group = 'com.autoloop.teamcity'
 version = '1.0-SNAPSHOT'
 
 ext {
@@ -30,15 +30,14 @@ teamcity {
     descriptor {
       // required properties
       name = project.name
-      displayName = 'Slack'
+      displayName = 'Teams'
       version = project.version
-      vendorName = 'Enliven HQ'
+      vendorName = 'AutoLoop'
 
       // optional properties
-      description = 'Post messages to your Slack instance for build events.'
-      email = 'developers@enlivenhq.com'
-      vendorUrl = 'http://enlivenhq.com/'
-      vendorLogo = 'http://enlivenhq.com/wp-content/themes/enlivenhq/_/images/enliven_circle.svg'
+      description = 'Post messages to Microsoft Teams webhooks for build events.'
+      email = 'john@autoloop.com'
+      vendorUrl = 'http://autoloop.com/'
       useSeparateClassloader = true
     }
 
