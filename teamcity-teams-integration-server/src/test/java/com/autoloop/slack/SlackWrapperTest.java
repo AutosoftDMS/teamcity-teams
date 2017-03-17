@@ -1,6 +1,6 @@
 package com.autoloop.slack;
 
-//import com.autoloop.teams.TeamsWrapper;
+//import com.autoloop.teamcity.TeamsWrapper;
 //import org.testng.annotations.Test;
 //
 //import static org.testng.Assert.*;

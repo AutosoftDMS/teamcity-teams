@@ -3,7 +3,7 @@
   <info>
     <name>teamcity-teams-integration</name>
     <display-name>Teams</display-name>
-    <version>snapshot-20170316192822</version>
+    <version>snapshot-20170320140112</version>
     <description>Post messages to Microsoft Teams webhooks for build events.</description>
     <download-url>http://autoloop.com/</download-url>
     <email>john@autoloop.com</email>

@@ -1,37 +1,23 @@
-package com.autoloop.teams;
+package com.autoloop.teamcity;
 
-import com.autoloop.teamcity.TeamsNotificator;
-import com.autoloop.teamcity.TeamsPayload;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import jetbrains.buildServer.Build;
-import jetbrains.buildServer.web.util.WebUtil;
-import org.apache.log4j.Logger;
+import com.intellij.openapi.diagnostic.Logger;
 import org.jetbrains.annotations.NotNull;
 
 import javax.net.ssl.HttpsURLConnection;
 import java.io.*;
 import java.net.URL;
 
-public class TeamsWrapper
+public class TeamsSender
 {
-    public static final GsonBuilder GSON_BUILDER = new GsonBuilder().excludeFieldsWithoutExposeAnnotation();
-    private static final Logger LOG = Logger.getLogger(TeamsNotificator.class);
+    protected final String webhookUrl;
 
-    protected String webhookUrl;
-
-    protected String serverUrl;
-
-    public TeamsWrapper() {
-
+    public TeamsSender(String webhookUrl) {
+        this.webhookUrl = webhookUrl;
     }
 
-    public String send(Build build, String statusText) throws IOException
+    public String send(@NotNull String payload) throws IOException
     {
-        String formattedPayload = getFormattedPayload(build, statusText);
-        LOG.debug(formattedPayload);
-
-        URL url = new URL(this.getWebhookUrl());
+        URL url = new URL(this.webhookUrl);
         HttpsURLConnection httpsURLConnection = (HttpsURLConnection) url.openConnection();
 
         httpsURLConnection.setRequestMethod("POST");
@@ -42,8 +28,7 @@ public class TeamsWrapper
             httpsURLConnection.getOutputStream()
         );
 
-        //dataOutputStream.writeBytes(formattedPayload);
-        byte[] array = formattedPayload.getBytes("UTF-8");
+        byte[] array = payload.getBytes("UTF-8");
         dataOutputStream.write(array, 0, array.length);
         dataOutputStream.flush();
         dataOutputStream.close();
@@ -67,15 +52,6 @@ public class TeamsWrapper
         return getResponseBody(inputStream, responseBody);
     }
 
-    @NotNull
-    public String getFormattedPayload(Build build, String statusText) {
-        Gson gson = GSON_BUILDER.create();
-
-        TeamsPayload teamsPayload = new TeamsPayload(build, statusText, WebUtil.escapeUrlForQuotes(getServerUrl()));
-
-        return gson.toJson(teamsPayload);
-    }
-
     private String getResponseBody(InputStream inputStream, String responseBody) throws IOException {
         String line;
 
@@ -89,23 +65,5 @@ public class TeamsWrapper
 
         bufferedReader.close();
         return responseBody;
-    }
-
-    public void setWebhookUrl(String webhookUrl)
-    {
-        this.webhookUrl = webhookUrl;
-    }
-
-    public String getWebhookUrl()
-    {
-        return this.webhookUrl;
-    }
-
-    public String getServerUrl() {
-        return serverUrl;
-    }
-
-    public void setServerUrl(String serverUrl) {
-        this.serverUrl = serverUrl;
     }
 }

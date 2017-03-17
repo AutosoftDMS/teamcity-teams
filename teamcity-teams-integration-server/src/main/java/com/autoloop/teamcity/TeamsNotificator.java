@@ -1,6 +1,5 @@
 package com.autoloop.teamcity;
 
-import com.autoloop.teams.TeamsWrapper;
 import jetbrains.buildServer.Build;
 import jetbrains.buildServer.notification.Notificator;
 import jetbrains.buildServer.notification.NotificatorRegistry;
@@ -19,7 +18,7 @@ import jetbrains.buildServer.users.NotificatorPropertyKey;
 import jetbrains.buildServer.users.PropertyKey;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.vcs.VcsRoot;
-import org.apache.log4j.Logger;
+import com.intellij.openapi.diagnostic.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -30,7 +29,7 @@ import java.util.Set;
 
 public class TeamsNotificator implements Notificator {
 
-    private static final Logger log = Logger.getLogger(TeamsNotificator.class);
+    private static final Logger LOG = Logger.getInstance(TeamsNotificator.class.getName());
 
     private static final String type = "TeamsNotificator";
 
@@ -56,31 +55,31 @@ public class TeamsNotificator implements Notificator {
     }
 
     public void notifyBuildFailed(@NotNull SRunningBuild sRunningBuild, @NotNull Set<SUser> users) {
-         sendNotification(sRunningBuild, users, "failed: " + sRunningBuild.getStatusDescriptor().getText(), "danger");
+         sendNotification(sRunningBuild, users, "failed");
     }
 
     public void notifyBuildFailedToStart(@NotNull SRunningBuild sRunningBuild, @NotNull Set<SUser> users) {
-        sendNotification(sRunningBuild, users, "failed to start", "danger");
+        sendNotification(sRunningBuild, users, "failed to start");
     }
 
     public void notifyBuildSuccessful(@NotNull SRunningBuild sRunningBuild, @NotNull Set<SUser> users) {
-        sendNotification(sRunningBuild, users, "built successfully", "good");
+        sendNotification(sRunningBuild, users, "was successful");
     }
 
     public void notifyLabelingFailed(@NotNull Build build, @NotNull VcsRoot vcsRoot, @NotNull Throwable throwable, @NotNull Set<SUser> sUsers) {
-        sendNotification(build, sUsers, "labeling failed", "danger");
+        sendNotification(build, sUsers, "labeling failed");
     }
 
     public void notifyBuildFailing(@NotNull SRunningBuild sRunningBuild, @NotNull Set<SUser> sUsers) {
-        sendNotification(sRunningBuild, sUsers, "failing", "danger");
+        sendNotification(sRunningBuild, sUsers, "is failing");
     }
 
     public void notifyBuildProbablyHanging(@NotNull SRunningBuild sRunningBuild, @NotNull Set<SUser> sUsers) {
-        sendNotification(sRunningBuild, sUsers, "probably hanging", "warning");
+        sendNotification(sRunningBuild, sUsers, "is probably hanging");
     }
 
     public void notifyBuildStarted(@NotNull SRunningBuild sRunningBuild, @NotNull Set<SUser> sUsers) {
-        sendNotification(sRunningBuild, sUsers, "started", "warning");
+        sendNotification(sRunningBuild, sUsers, "has started");
     }
 
     public void notifyResponsibleChanged(@NotNull SBuildType sBuildType, @NotNull Set<SUser> sUsers) {
@@ -132,11 +131,11 @@ public class TeamsNotificator implements Notificator {
     }
 
     private void registerNotificatorAndUserProperties(NotificatorRegistry notificatorRegistry) {
-        ArrayList<UserPropertyInfo> userPropertyInfos = getUserPropertyInfosList();
+        ArrayList<UserPropertyInfo> userPropertyInfos = getUserPropertyInfoList();
         notificatorRegistry.register(this, userPropertyInfos);
     }
 
-    private ArrayList<UserPropertyInfo> getUserPropertyInfosList() {
+    private ArrayList<UserPropertyInfo> getUserPropertyInfoList() {
         ArrayList<UserPropertyInfo> userPropertyInfos = new ArrayList<UserPropertyInfo>();
 
         userPropertyInfos.add(new UserPropertyInfo(teamsWebhookUrlKey, "Webhook URL"));
@@ -144,36 +143,31 @@ public class TeamsNotificator implements Notificator {
         return userPropertyInfos;
     }
 
-    private void sendNotification(Build build, Set<SUser> users, String statusText, String statusColor) {
+    private void sendNotification(Build build, Set<SUser> users, String statusText) {
+        String serverUrl = myServer.getRootUrl();
+        TeamsPayloadBuilder builder = new TeamsPayloadBuilder(serverUrl);
+        String payload = builder.getFormattedPayload(build, statusText);
+
+        LOG.debug("Teams webhook payload: " + payload);
+
         for (SUser user : users) {
-            TeamsWrapper wrapper = getTeamsWrapperWithUser(user);
+            String webhookUrl = user.getPropertyValue(teamsWebhookUrl);
+
+            if (webhookUrl == null) {
+                LOG.error("Could not send Teams notification. The Teams webhook URL was null. " +
+                        "Double check your Notification settings");
+
+                continue;
+            }
+
+            TeamsSender sender = new TeamsSender(webhookUrl);
+
             try {
-                wrapper.send(build, statusText);
+                sender.send(payload);
             }
             catch (IOException e) {
-                log.error(e.getMessage());
+                LOG.error(e.getMessage());
             }
         }
-    }
-
-    private TeamsWrapper getTeamsWrapperWithUser(SUser user) {
-        String url = user.getPropertyValue(teamsWebhookUrl);
-
-        TeamsWrapper wrapper = new TeamsWrapper();
-
-        if (configurationIsInvalid(url)) {
-            log.error("Could not send Teams notification. The Teams webhook URL was null. " +
-                      "Double check your Notification settings");
-        }
-        else {
-            wrapper.setWebhookUrl(url);
-            wrapper.setServerUrl(myServer.getRootUrl());
-        }
-
-        return wrapper;
-    }
-
-    private boolean configurationIsInvalid(String url) {
-        return url == null;
     }
 }
